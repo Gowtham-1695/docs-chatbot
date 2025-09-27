@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+python-docx
+huggingface_hub
+langchain
+python-multipart
+requests
+pydantic
+pytest
+httpx
