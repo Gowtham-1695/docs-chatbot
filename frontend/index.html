@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document RAG Chatbot</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📄 Document RAG Chatbot</h1>
+            <p>Upload Word documents and chat with their content using AI</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Upload Section -->
+            <section class="upload-section">
+                <h2>📁 Upload Documents</h2>
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-content">
+                        <div class="upload-icon">📄</div>
+                        <p>Drag & drop Word documents here or click to browse</p>
+                        <input type="file" id="fileInput" multiple accept=".docx,.doc" style="display: none;">
+                        <button class="btn-primary" onclick="document.getElementById('fileInput').click()">
+                            Choose Files
+                        </button>
+                    </div>
+                </div>
+                <div class="upload-status" id="uploadStatus"></div>
+            </section>
+
+            <!-- Files List Section -->
+            <section class="files-section">
+                <h2>📚 Uploaded Documents</h2>
+                <div class="files-list" id="filesList">
+                    <p class="no-files">No documents uploaded yet</p>
+                </div>
+            </section>
+
+            <!-- Chat Section -->
+            <section class="chat-section" id="chatSection" style="display: none;">
+                <div class="chat-header">
+                    <h2>💬 Chat</h2>
+                    <div class="chat-info">
+                        <span id="currentFileName">No file selected</span>
+                        <button class="btn-secondary" id="newChatBtn">New Chat</button>
+                    </div>
+                </div>
+                
+                <div class="chat-container">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="welcome-message">
+                            <p>👋 Hi! I'm ready to answer questions about your uploaded documents.</p>
+                            <p>Ask me anything about the content!</p>
+                        </div>
+                    </div>
+                    
+                    <div class="chat-input-container">
+                        <div class="chat-input">
+                            <input type="text" id="messageInput" placeholder="Ask a question about your document..." disabled>
+                            <button id="sendBtn" disabled>Send</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sessions Section -->
+            <section class="sessions-section">
+                <h2>🗂️ Chat Sessions</h2>
+                <div class="sessions-list" id="sessionsList">
+                    <p class="no-sessions">No chat sessions yet</p>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Loading Modal -->
+    <div class="modal" id="loadingModal">
+        <div class="modal-content">
+            <div class="loading-spinner"></div>
+            <p id="loadingText">Processing...</p>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
