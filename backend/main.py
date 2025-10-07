@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from backend.database import get_db, create_tables
 from backend.models import UploadedFile, ChatSession, ChatMessage
 from backend.document_processor import DocumentProcessor
-from backend.rag_service import RAGService
+from backend.simple_rag import SimpleRAGService
 from backend.config import settings
 
 # Create FastAPI app
@@ -32,7 +32,7 @@ os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 
 # Initialize services
 document_processor = DocumentProcessor()
-rag_service = RAGService()
+rag_service = SimpleRAGService()
 
 # Pydantic models for API
 class ChatRequest(BaseModel):

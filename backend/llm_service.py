@@ -21,48 +21,65 @@ class LLMService:
         # Create prompt with context and conversation history
         prompt = self._create_prompt(query, context, conversation_history)
         
-        payload = {
-            "inputs": prompt,
-            "parameters": {
-                "max_new_tokens": 512,
-                "temperature": 0.7,
-                "do_sample": True,
-                "top_p": 0.9,
-                "repetition_penalty": 1.1
+        # Try different models if the current one fails
+        models_to_try = [
+            "microsoft/DialoGPT-medium",
+            "gpt2",
+            "distilgpt2"
+        ]
+        
+        for model in models_to_try:
+            model_url = f"{self.headers.get('Authorization', '').replace('Bearer ', '') and f'https://api-inference.huggingface.co/models/{model}' or ''}"
+            if not model_url:
+                continue
+                
+            payload = {
+                "inputs": prompt,
+                "parameters": {
+                    "max_new_tokens": 200,
+                    "temperature": 0.7,
+                    "do_sample": True,
+                    "top_p": 0.9,
+                    "repetition_penalty": 1.1,
+                    "return_full_text": False
+                }
             }
-        }
-        
-        try:
-            response = requests.post(
-                self.llm_url,
-                headers=self.headers,
-                json=payload,
-                timeout=60
-            )
             
-            if response.status_code == 200:
-                result = response.json()
+            try:
+                response = requests.post(
+                    f"https://api-inference.huggingface.co/models/{model}",
+                    headers=self.headers,
+                    json=payload,
+                    timeout=60
+                )
                 
-                # Handle different response formats
-                if isinstance(result, list) and len(result) > 0:
-                    generated_text = result[0].get('generated_text', '')
-                elif isinstance(result, dict):
-                    generated_text = result.get('generated_text', '')
+                if response.status_code == 200:
+                    result = response.json()
+                    
+                    # Handle different response formats
+                    if isinstance(result, list) and len(result) > 0:
+                        generated_text = result[0].get('generated_text', '')
+                    elif isinstance(result, dict):
+                        generated_text = result.get('generated_text', '')
+                    else:
+                        generated_text = str(result)
+                    
+                    # Clean up the response (remove the original prompt)
+                    if generated_text.startswith(prompt):
+                        generated_text = generated_text[len(prompt):].strip()
+                    
+                    if generated_text and len(generated_text.strip()) > 10:
+                        return generated_text.strip()
                 else:
-                    generated_text = str(result)
-                
-                # Clean up the response (remove the original prompt)
-                if generated_text.startswith(prompt):
-                    generated_text = generated_text[len(prompt):].strip()
-                
-                return generated_text if generated_text else "I apologize, but I couldn't generate a proper response. Please try rephrasing your question."
-            else:
-                print(f"LLM API error: {response.status_code} - {response.text}")
-                return "I'm sorry, but I'm having trouble generating a response right now. Please try again later."
+                    print(f"LLM API error for {model}: {response.status_code} - {response.text}")
+                    continue
+            
+            except Exception as e:
+                print(f"Error with model {model}: {str(e)}")
+                continue
         
-        except Exception as e:
-            print(f"Error generating response: {str(e)}")
-            return "I encountered an error while processing your request. Please try again."
+        # If all models fail, return a fallback response
+        return self._fallback_response(query, context_chunks)
     
     def _create_prompt(self, query: str, context: str, conversation_history: List[dict] = None) -> str:
         """Create a well-formatted prompt for the LLM."""

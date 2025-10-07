@@ -17,7 +17,8 @@ class EmbeddingService:
         if not self.api_key:
             raise ValueError("HF_API_KEY not provided")
         
-        payload = {"inputs": text}
+        # Use the correct format for sentence transformers
+        payload = {"inputs": [text]}  # Note: wrapped in list
         
         try:
             response = requests.post(
