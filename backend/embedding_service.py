@@ -1,6 +1,6 @@
 import json
 import requests
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from backend.config import settings
