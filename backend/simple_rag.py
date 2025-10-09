@@ -52,6 +52,16 @@ class SimpleRAGService:
                     relevant_chunks.append((chunk.chunk_text, similarity))
                 return relevant_chunks
             
+            # Handle title/naming queries - get diverse chunks from document
+            if any(word in query_lower for word in ['title', 'suggest title', 'name for', 'call this document']):
+                # Get chunks from different parts of the document for better title analysis
+                chunk_indices = [0, len(chunks)//3, len(chunks)//2, len(chunks)*2//3, len(chunks)-1]
+                for i, idx in enumerate(chunk_indices[:5]):
+                    if idx < len(chunks):
+                        similarity = 0.9 - (i * 0.1)
+                        relevant_chunks.append((chunks[idx].chunk_text, similarity))
+                return relevant_chunks
+            
             # Extract meaningful words (remove common stop words)
             stop_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'what', 'where', 'when', 'why', 'how', 'there', 'here', 'this', 'that', 'these', 'those'}
             query_words = set(re.findall(r'\w+', query_lower)) - stop_words
@@ -168,6 +178,10 @@ class SimpleRAGService:
         
         query_lower = query.lower()
         
+        # Handle title suggestion queries
+        if any(word in query_lower for word in ['title', 'suggest title', 'name for', 'call this document']):
+            return self._suggest_title(chunks)
+        
         # Handle specific query types
         if any(word in query_lower for word in ['first page', '1st page', 'page 1', 'beginning', 'start']):
             response_parts = [
@@ -213,6 +227,139 @@ class SimpleRAGService:
         
         if len(chunks) > 2:
             response_parts.append("💡 There are additional relevant sections in the document that might contain more information.")
+        
+        return "\n".join(response_parts)
+    
+    def _suggest_title(self, chunks: List[str]) -> str:
+        """Suggest a title based on document content."""
+        if not chunks:
+            return "I couldn't analyze the document content to suggest a title."
+        
+        # Combine all chunks to analyze
+        full_text = " ".join(chunks).lower()
+        
+        # Extract key terms and topics
+        key_terms = []
+        
+        # Technical document indicators
+        tech_terms = {
+            'api': 'API', 'database': 'Database', 'security': 'Security', 
+            'encryption': 'Security', 'dashboard': 'Dashboard', 'system': 'System',
+            'application': 'Application', 'software': 'Software', 'platform': 'Platform',
+            'architecture': 'Architecture', 'framework': 'Framework', 'service': 'Service',
+            'development': 'Development', 'implementation': 'Implementation',
+            'management': 'Management', 'analysis': 'Analysis', 'report': 'Report',
+            'documentation': 'Documentation', 'guide': 'Guide', 'manual': 'Manual',
+            'specification': 'Specification', 'requirements': 'Requirements',
+            'design': 'Design', 'configuration': 'Configuration', 'deployment': 'Deployment'
+        }
+        
+        # Business document indicators
+        business_terms = {
+            'business': 'Business', 'strategy': 'Strategy', 'plan': 'Plan',
+            'proposal': 'Proposal', 'contract': 'Contract', 'agreement': 'Agreement',
+            'policy': 'Policy', 'procedure': 'Procedure', 'process': 'Process',
+            'workflow': 'Workflow', 'project': 'Project', 'timeline': 'Timeline',
+            'budget': 'Budget', 'financial': 'Financial', 'revenue': 'Revenue',
+            'marketing': 'Marketing', 'sales': 'Sales', 'customer': 'Customer'
+        }
+        
+        # Academic/Research document indicators
+        academic_terms = {
+            'research': 'Research', 'study': 'Study', 'analysis': 'Analysis',
+            'thesis': 'Thesis', 'dissertation': 'Dissertation', 'paper': 'Paper',
+            'journal': 'Journal', 'article': 'Article', 'review': 'Review',
+            'survey': 'Survey', 'experiment': 'Experiment', 'methodology': 'Methodology'
+        }
+        
+        # Find matching terms
+        found_terms = set()
+        for term, display in {**tech_terms, **business_terms, **academic_terms}.items():
+            if term in full_text:
+                found_terms.add(display)
+        
+        # Generate title suggestions based on content
+        title_suggestions = []
+        
+        if 'Dashboard' in found_terms and 'Security' in found_terms:
+            title_suggestions.extend([
+                "Secure Dashboard Development Guide",
+                "Security-Enhanced Dashboard Documentation",
+                "Dashboard Security Implementation Manual"
+            ])
+        elif 'Security' in found_terms and 'System' in found_terms:
+            title_suggestions.extend([
+                "System Security Documentation",
+                "Security Implementation Guide",
+                "Secure System Architecture Manual"
+            ])
+        elif 'API' in found_terms and 'Documentation' in found_terms:
+            title_suggestions.extend([
+                "API Documentation Guide",
+                "API Development Manual",
+                "API Implementation Specification"
+            ])
+        elif 'Dashboard' in found_terms:
+            title_suggestions.extend([
+                "Dashboard Development Guide",
+                "Dashboard Implementation Manual",
+                "Interactive Dashboard Documentation"
+            ])
+        elif 'Security' in found_terms:
+            title_suggestions.extend([
+                "Security Implementation Guide",
+                "Security Documentation Manual",
+                "Cybersecurity Best Practices"
+            ])
+        elif 'Database' in found_terms:
+            title_suggestions.extend([
+                "Database Management Guide",
+                "Database Implementation Manual",
+                "Database Architecture Documentation"
+            ])
+        elif len(found_terms) >= 2:
+            # Combine multiple terms
+            terms_list = list(found_terms)[:3]
+            title_suggestions.extend([
+                f"{' & '.join(terms_list)} Documentation",
+                f"{terms_list[0]} {terms_list[1]} Guide",
+                f"Comprehensive {terms_list[0]} Manual"
+            ])
+        else:
+            # Generic suggestions based on document type
+            if any(word in full_text for word in ['guide', 'manual', 'documentation']):
+                title_suggestions.extend([
+                    "Technical Documentation Guide",
+                    "Implementation Manual",
+                    "System Documentation"
+                ])
+            elif any(word in full_text for word in ['report', 'analysis', 'study']):
+                title_suggestions.extend([
+                    "Technical Analysis Report",
+                    "System Analysis Document",
+                    "Implementation Study"
+                ])
+            else:
+                title_suggestions.extend([
+                    "Technical Document",
+                    "System Documentation",
+                    "Implementation Guide"
+                ])
+        
+        # Format the response
+        response_parts = [
+            "📝 Based on the document content, here are some suggested titles:",
+            ""
+        ]
+        
+        for i, title in enumerate(title_suggestions[:3], 1):
+            response_parts.append(f"{i}. \"{title}\"")
+        
+        response_parts.extend([
+            "",
+            "💡 These suggestions are based on the key topics I found in your document:",
+            f"🔍 Key themes: {', '.join(list(found_terms)[:5]) if found_terms else 'General technical content'}"
+        ])
         
         return "\n".join(response_parts)
     
